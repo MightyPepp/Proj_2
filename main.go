@@ -157,9 +157,15 @@ func (ts *taskServer) dueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+func coreHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./static/index.html")
+}
+
 func main() {
 	mux := http.NewServeMux()
 	server := NewTaskServer()
+
+	mux.HandleFunc("/", coreHandler)
 
 	mux.HandleFunc("POST /task/", server.createTaskHandler)
 	mux.HandleFunc("GET /task/", server.getAllTasksHandler)
