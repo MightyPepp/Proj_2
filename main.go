@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 type taskServer struct {
@@ -141,22 +143,23 @@ func coreHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
+	router.StrictSlash(true)
 	server := NewTaskServer()
 
-	mux.HandleFunc("/", coreHandler)
+	router.HandleFunc("/", coreHandler)
 
-	mux.HandleFunc("POST /task/", server.createTaskHandler)
-	mux.HandleFunc("GET /task/", server.getAllTasksHandler)
-	mux.HandleFunc("DELETE /task/", server.deleteAllTasksHandler)
-	mux.HandleFunc("GET /task/{id}/", server.getTaskHandler)
-	mux.HandleFunc("DELETE /task/{id}/", server.deleteTaskHandler)
-	mux.HandleFunc("GET /tag/{tag}/", server.tagHandler)
-	mux.HandleFunc("GET /due/{year}/{month}/{day}/", server.dueHandler) 
+	router.HandleFunc("/task/", server.createTaskHandler).Methods("POST")
+	router.HandleFunc("/task/", server.getAllTasksHandler).Methods("GET")
+	router.HandleFunc("/task/", server.deleteAllTasksHandler).Methods("DELETE")
+	router.HandleFunc("/task/{id}/", server.getTaskHandler).Methods("GET")
+	router.HandleFunc("/task/{id}/", server.deleteTaskHandler).Methods("DELETE")
+	router.HandleFunc("/tag/{tag}/", server.tagHandler).Methods("GET")
+	router.HandleFunc("/due/{year}/{month}/{day}/", server.dueHandler).Methods("GET")
 	
 	port := "8080"
 	log.Printf("Сервер запущен на http://localhost:%s", port)
-	err := http.ListenAndServe(":"+port, mux)
+	err := http.ListenAndServe(":"+port, router)
 	if err != nil {
 		log.Fatal("Ошибка запуска сервера: ", err)
 	}
