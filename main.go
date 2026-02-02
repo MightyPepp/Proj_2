@@ -2,15 +2,11 @@ package main
 
 import (
 	"Proj_2/taskstore"
-	"encoding/json"
-	"fmt"
-	"log"
-	"mime"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type taskServer struct {
@@ -22,145 +18,104 @@ func NewTaskServer() *taskServer {
 	return &taskServer{store: store}
 }
 
-func renderJSON(w http.ResponseWriter, v interface{}) {
-	js, err := json.Marshal(v)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+func (ts *taskServer) getAllTasksHandler(c *gin.Context) {
+	allTasks := ts.store.GetAllTasks()
+	c.JSON(http.StatusOK, allTasks)
 }
 
-func (ts *taskServer) createTaskHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling task create at %s\n", r.URL.Path)
+func (ts *taskServer) deleteAllTasksHandler(c *gin.Context) {
+	ts.store.DeleteAllTasks()
+}
 
+func (ts *taskServer) createTaskHandler(c *gin.Context) {
 	type RequestTask struct {
 		Text string `json:"text"`
 		Tags []string `json:"tags"`
 		Due time.Time `json:"due"`
 	}
 
-	type ResponseId struct {
-		Id int `json:"id"`
-	}
-
-	contentType := r.Header.Get("Content-Type")
-	mediatype, _, err := mime.ParseMediaType(contentType)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if mediatype != "application/json" {
-		http.Error(w, "except application/json Content-Type", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
 	var rt RequestTask
-	if err := dec.Decode(&rt); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&rt); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	id := ts.store.CreateTask(rt.Text, rt.Tags, rt.Due)
-	renderJSON(w, ResponseId{Id: id})
+	c.JSON(http.StatusOK, gin.H{"Id": id})
 }
 
-func (ts *taskServer) getAllTasksHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling get all tasks at %s\n", r.URL.Path)
-
-	allTasks := ts.store.GetAllTasks()
-	renderJSON(w, allTasks)
-}
-
-func (ts *taskServer) getTaskHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling get task at %s\n", r.URL.Path)
-
-	id, err := strconv.Atoi(r.PathValue("id"))
+func (ts *taskServer) getTaskHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Params.ByName("id"))
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		c.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
 	task, err := ts.store.GetTask(id)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	renderJSON(w, task)
-}
-
-func (ts *taskServer) deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling delete task at %s\n", r.URL.Path)
-
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		c.String(http.StatusNotFound, err.Error())
 		return
 	}
 
-	err = ts.store.DeleteTask(id)
+	c.JSON(http.StatusOK, task)
+}
+
+func (ts *taskServer) deleteTaskHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Params.ByName("id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = ts.store.DeleteTask(id); err != nil {
+		c.String(http.StatusNotFound, err.Error())
 	}
 }
 
-func (ts *taskServer) deleteAllTasksHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling delete all tasks at %s\n", r.URL.Path)
-	ts.store.DeleteAllTasks()
-}
-
-func (ts *taskServer) tagHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling tasks by tag at %s\n", r.URL.Path)
-
-	tag := r.PathValue(("tag"))
-
+func (ts *taskServer) tagHandler(c *gin.Context) {
+	tag := c.Params.ByName("tag")
 	tasks := ts.store.GetTaskByTag(tag)
-	renderJSON(w, tasks)
+	c.JSON(http.StatusOK, tasks)
 }
 
-func (ts *taskServer) dueHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handling tasks by due at %s\n", r.URL.Path)
-
-	badRequestError := func() {
-		http.Error(w, fmt.Sprintf("except /due/<year>/<month>/<day>, got %v", r.URL.Path), http.StatusBadRequest)
+func (ts *taskServer) dueHandler(c *gin.Context) {
+	badRequesError := func() {
+		c.String(http.StatusBadRequest, "except /due/<year>/<month>/<day>, got %v", c.FullPath())
+	}
+	
+	year, err := strconv.Atoi(c.Params.ByName("year"))
+	if err != nil {
+		badRequesError()
+		return
 	}
 
-	year, errYear := strconv.Atoi(r.PathValue("year"))
-	month, errMonth := strconv.Atoi(r.PathValue("month"))
-	day, errDay := strconv.Atoi(r.PathValue("day"))
-	if errYear != nil || errMonth != nil || errDay != nil || month < int(time.January) || month > int(time.December) {
-		badRequestError()
+	month, err := strconv.Atoi(c.Params.ByName("month"))
+	if err != nil {
+		badRequesError()
+		return
+	}
+
+	day, err := strconv.Atoi(c.Params.ByName("day"))
+	if err != nil {
+		badRequesError()
 		return
 	}
 
 	tasks := ts.store.GetTaskByDueData(year, time.Month(month), day)
-	renderJSON(w, tasks)
-}
-
-func coreHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/index.html")
+	c.JSON(http.StatusOK, tasks)
 }
 
 func main() {
-	router := mux.NewRouter()
-	router.StrictSlash(true)
+	router := gin.Default()
 	server := NewTaskServer()
 
-	router.HandleFunc("/", coreHandler)
-
-	router.HandleFunc("/task/", server.createTaskHandler).Methods("POST")
-	router.HandleFunc("/task/", server.getAllTasksHandler).Methods("GET")
-	router.HandleFunc("/task/", server.deleteAllTasksHandler).Methods("DELETE")
-	router.HandleFunc("/task/{id:[0-9]+}/", server.getTaskHandler).Methods("GET")
-	router.HandleFunc("/task/{id:[0-9]+}/", server.deleteTaskHandler).Methods("DELETE")
-	router.HandleFunc("/tag/{tag}/", server.tagHandler).Methods("GET")
-	router.HandleFunc("/due/{year:[0-9]+}/{month:[0-9]+}/{day:[0-9]+}/", server.dueHandler).Methods("GET")
+	router.POST("/task/", server.createTaskHandler)
+	router.GET("/task/", server.getAllTasksHandler)
+	router.DELETE("/task/", server.deleteAllTasksHandler)
+	router.GET("/task/:id", server.getTaskHandler)
+	router.DELETE("/task/:id", server.deleteTaskHandler)
+	router.GET("/tag/:tag", server.tagHandler)
+	router.GET("/due/:year/:month/:day", server.dueHandler)
 	
-	port := "8080"
-	log.Printf("Сервер запущен на http://localhost:%s", port)
-	err := http.ListenAndServe(":"+port, router)
-	if err != nil {
-		log.Fatal("Ошибка запуска сервера: ", err)
-	}
+	router.Run("localhost:8080")
 }
