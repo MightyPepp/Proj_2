@@ -152,10 +152,10 @@ func main() {
 	router.HandleFunc("/task/", server.createTaskHandler).Methods("POST")
 	router.HandleFunc("/task/", server.getAllTasksHandler).Methods("GET")
 	router.HandleFunc("/task/", server.deleteAllTasksHandler).Methods("DELETE")
-	router.HandleFunc("/task/{id}/", server.getTaskHandler).Methods("GET")
-	router.HandleFunc("/task/{id}/", server.deleteTaskHandler).Methods("DELETE")
+	router.HandleFunc("/task/{id:[0-9]+}/", server.getTaskHandler).Methods("GET")
+	router.HandleFunc("/task/{id:[0-9]+}/", server.deleteTaskHandler).Methods("DELETE")
 	router.HandleFunc("/tag/{tag}/", server.tagHandler).Methods("GET")
-	router.HandleFunc("/due/{year}/{month}/{day}/", server.dueHandler).Methods("GET")
+	router.HandleFunc("/due/{year:[0-9]+}/{month:[0-9]+}/{day:[0-9]+}/", server.dueHandler).Methods("GET")
 	
 	port := "8080"
 	log.Printf("Сервер запущен на http://localhost:%s", port)
