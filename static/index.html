@@ -1,12 +1,105 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset = "utf-8">
-        <tittle>Main page</tittle>
-    </head>
-    <body>
-        <div>
-            <h1>Main page</h1>
-        </div>
-    </body>
+<head>
+    <title>Task API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .endpoint {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background: #61affe; color: white; }
+        .post { background: #49cc90; color: white; }
+        .delete { background: #f93e3e; color: white; }
+        code {
+            background: #f1f1f1;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>📝 Task Management API</h1>
+    <p>Добро пожаловать в API для управления задачами!</p>
+    
+    <h2>Доступные эндпоинты:</h2>
+    
+    <div class="endpoint">
+        <span class="method post">POST</span>
+        <code>/task/</code>
+        <p>Создать новую задачу</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <code>/task/</code>
+        <p>Получить все задачи</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <code>/task/{id}/</code>
+        <p>Получить задачу по ID</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <code>/task/</code>
+        <p>Удалить все задачи</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <code>/task/{id}/</code>
+        <p>Удалить задачу по ID</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <code>/tag/{tag}/</code>
+        <p>Получить задачи по тегу</p>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <code>/due/{year}/{month}/{day}/</code>
+        <p>Получить задачи на определенную дату</p>
+    </div>
+    
+    <h2>Примеры использования с curl:</h2>
+    <pre>
+# Создать задачу
+curl -X POST http://localhost:8080/task/ \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Купить молоко", "tags": ["shopping"], "due": "2024-12-25T10:00:00Z"}'
+
+# Получить все задачи
+curl http://localhost:8080/task/
+
+# Получить задачу по ID
+curl http://localhost:8080/task/0/
+    </pre>
+    
+    <script>
+        // Можно добавить JavaScript для тестирования API прямо со страницы
+        console.log('Task API доступен на порту 8080');
+    </script>
+</body>
 </html>

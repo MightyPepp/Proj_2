@@ -20,6 +20,16 @@ func NewTaskServer() *taskServer {
 	return &taskServer{store: store}
 }
 
+func renderJSON(w http.ResponseWriter, v interface{}) {
+	js, err := json.Marshal(v)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
 func (ts *taskServer) createTaskHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling task create at %s\n", r.URL.Path)
 
@@ -53,26 +63,14 @@ func (ts *taskServer) createTaskHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	id := ts.store.CreateTask(rt.Text, rt.Tags, rt.Due)
-	js, err := json.Marshal(ResponseId{Id: id})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	renderJSON(w, ResponseId{Id: id})
 }
 
 func (ts *taskServer) getAllTasksHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handling get all tasks at %s\n", r.URL.Path)
 
 	allTasks := ts.store.GetAllTasks()
-	js, err := json.Marshal(allTasks)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	renderJSON(w, allTasks)
 }
 
 func (ts *taskServer) getTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -87,14 +85,7 @@ func (ts *taskServer) getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
-	js, err := json.Marshal(task)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	renderJSON(w, task)
 }
 
 func (ts *taskServer) deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
@@ -123,13 +114,7 @@ func (ts *taskServer) tagHandler(w http.ResponseWriter, r *http.Request) {
 	tag := r.PathValue(("tag"))
 
 	tasks := ts.store.GetTaskByTag(tag)
-	js, err := json.Marshal(tasks)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	renderJSON(w, tasks)
 }
 
 func (ts *taskServer) dueHandler(w http.ResponseWriter, r *http.Request) {
@@ -148,13 +133,7 @@ func (ts *taskServer) dueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tasks := ts.store.GetTaskByDueData(year, time.Month(month), day)
-	js, err := json.Marshal(tasks)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
+	renderJSON(w, tasks)
 }
 
 func coreHandler(w http.ResponseWriter, r *http.Request) {
@@ -175,5 +154,10 @@ func main() {
 	mux.HandleFunc("GET /tag/{tag}/", server.tagHandler)
 	mux.HandleFunc("GET /due/{year}/{month}/{day}/", server.dueHandler) 
 	
-	http.ListenAndServe(":8080", nil)
+	port := "8080"
+	log.Printf("Сервер запущен на http://localhost:%s", port)
+	err := http.ListenAndServe(":"+port, mux)
+	if err != nil {
+		log.Fatal("Ошибка запуска сервера: ", err)
+	}
 }
