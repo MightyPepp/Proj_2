@@ -107,6 +107,8 @@ func (ts *taskServer) dueHandler(c *gin.Context) {
 
 func main() {
 	router := gin.Default()
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 	server := NewTaskServer()
 
 	router.POST("/task/", server.createTaskHandler)
