@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Proj_2/middleware"
 	"Proj_2/taskstore"
 	"encoding/json"
 	"fmt"
@@ -154,6 +155,9 @@ func main() {
 	mux.HandleFunc("GET /tag/{tag}/", server.tagHandler)
 	mux.HandleFunc("GET /due/{year}/{month}/{day}/", server.dueHandler) 
 	
+	handler := middleware.Logging(mux)
+	handler = middleware.PanicRecovery(handler)
+
 	port := "8080"
 	log.Printf("Сервер запущен на http://localhost:%s", port)
 	err := http.ListenAndServe(":"+port, mux)
